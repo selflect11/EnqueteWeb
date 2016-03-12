@@ -6,6 +6,7 @@ from django.views import generic
 from django.shortcuts import get_object_or_404, render, render_to_response
 from django.core.urlresolvers import reverse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from Projeto import settings
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -34,7 +35,7 @@ def Logout(request):
 	logout(request)
 	return HttpResponseRedirect(settings.LOGIN_URL)
 
-@login_required(login_url='/login/')
+@login_required
 def index(request):
 	latest_question_list = Question.objects.order_by('-pub_date')[:5]
 	template = loader.get_template('polls/index.html')
@@ -44,13 +45,18 @@ def index(request):
 class DetailView(generic.DetailView):
 	model = Question
 	template_name = 'polls/detail.html'
-
+	@method_decorator(login_required)
+	def dispatch(self, *args, **kwargs):
+		return super(DetailView, self).dispatch(*args, **kwargs)
 	def get_queryset(self):
 		return Question.objects.filter(pub_date__lte=timezone.now())
 
 class ResultsView(generic.DetailView):
 	model = Question
 	template_name = 'polls/results.html'
+	@method_decorator(login_required)
+	def dispatch(self, *args, **kwargs):
+		return super(ResultsView, self).dispatch(*args, **kwargs)
 
 def vote(request, question_id):
 	p = get_object_or_404(Question, pk=question_id)
@@ -66,6 +72,7 @@ def vote(request, question_id):
 		selected_choice.save()
 		return HttpResponseRedirect(reverse('polls:results', args=(p.id,)))
 
+@login_required
 class IndexView(generic.ListView):
 	template_name = 'polls/index.html'
 	context_object_name = 'latest_question_list'
